@@ -1,0 +1,54 @@
+[versions]
+jvmTarget = "17"
+# ----------------------
+crac = "1.4.0"
+detekt = "1.23.0"
+forkhandles = "2.10.1.0"
+http4k = "5.13.9.0"
+http4kConnect = "5.4.0.0"
+kotlin = "1.9.23"
+kotshiVersion = "2.14.0"
+kover = "0.7.6"
+ksp = "1.9.23-1.0.19"
+ktLint = "11.6.1"
+slf4j = "2.0.12"
+shadow = "8.1.1"
+
+[libraries]
+crac = { module = "org.crac:crac", version.ref = "crac" }
+
+forkhandles-values4k = { module = "dev.forkhandles:values4k", version.ref = "forkhandles" }
+forkhandles-result4k = { module = "dev.forkhandles:result4k", version.ref = "forkhandles" }
+forkhandles-result4k-kotest = { module = "dev.forkhandles:result4k-kotest", version.ref = "forkhandles" }
+
+http4k-core = { module = "org.http4k:http4k-core", version.ref = "http4k" }
+http4k-serverless-lambda = { module = "org.http4k:http4k-serverless-lambda", version.ref = "http4k" }
+http4k-cloudnative = { module = "org.http4k:http4k-cloudnative", version.ref = "http4k" }
+http4k-contract = { module = "org.http4k:http4k-contract", version.ref = "http4k" }
+http4k-format-moshi = { module = "org.http4k:http4k-format-moshi", version.ref = "http4k" }
+http4k-connect-amazon-s3 = { module = "org.http4k:http4k-connect-amazon-s3", version.ref = "http4kConnect" }
+http4k-connect-amazon-dynamodb = { module = "org.http4k:http4k-connect-amazon-dynamodb", version.ref = "http4kConnect" }
+http4k-connect-amazon-dynamodb-fake = { module = "org.http4k:http4k-connect-amazon-dynamodb-fake", version.ref = "http4kConnect" }
+http4k-testing-kotest = { module = "org.http4k:http4k-testing-kotest", version.ref = "http4k" }
+http4k-testing-approval = { module = "org.http4k:http4k-testing-approval", version.ref = "http4k" }
+
+kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+
+kotshi-api = { module = "se.ansman.kotshi:api", version.ref = "kotshiVersion" }
+kotshi-compiler = { module = "se.ansman.kotshi:compiler", version.ref = "kotshiVersion" }
+
+kover = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
+
+ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
+
+shadow = { module = "com.github.johnrengelman:shadow", version.ref = "shadow" }
+
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4j" }
+
+[plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+ktLint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktLint" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
