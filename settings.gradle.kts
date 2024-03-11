@@ -7,6 +7,6 @@ include(
     "lib",
 )
 include(
-    "function:login",
-    "function:register",
+    "function:auth:login",
+    "function:auth:register",
 )
