@@ -9,9 +9,8 @@ private const val PORT = 4000
 fun main() {
     buildApi(
         env = getEnv(),
-        routeSpec = routeSpec,
-        usecase = { RegisterUsecase(get(), get()) },
         isSecure = false,
+        route = ::route,
     )
         .asServer(SunHttp(PORT)).start()
         .also { println("Server started on port: $PORT") }

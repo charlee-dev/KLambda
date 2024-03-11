@@ -1,6 +1,4 @@
-import component.common.core.Usecase
 import component.common.feature.auth.JwtService
-import component.common.feature.auth.model.AuthResult
 import component.common.feature.user.UserRepository
 import component.common.feature.user.model.EmailInput
 import component.common.feature.user.model.NameInput
@@ -11,33 +9,16 @@ import dev.forkhandles.result4k.Failure
 import dev.forkhandles.result4k.Result4k
 import dev.forkhandles.result4k.Success
 import dev.forkhandles.result4k.asResultOr
-import dev.forkhandles.result4k.get
-import dev.forkhandles.result4k.map
 import dev.forkhandles.result4k.mapFailure
 import dev.forkhandles.values.ofResult4k
-import org.http4k.core.HttpHandler
-import org.http4k.core.Response
-import org.http4k.core.Status
-import org.http4k.core.with
 import java.time.Instant
 import java.util.UUID
 
-internal class RegisterUsecase(
+internal class Usecase(
     private val userRepository: UserRepository,
     private val jwtService: JwtService,
-) : Usecase {
-    override fun handler(): HttpHandler = { request ->
-        val input = RegisterInput.lens(request)
-        register(input.email, input.password, input.name)
-            .map {
-                Response(Status.CREATED)
-                    .with(AuthResult.lens of AuthResult.success(jwtService.createToken(input.password, it)))
-            }
-            .mapFailure { it.toResponse() }
-            .get()
-    }
-
-    private fun register(email: String, password: String, name: String): Result4k<User, LambdaError> {
+) {
+    fun register(email: String, password: String, name: String): Result4k<User, LambdaError> {
         validateInput(email, password, name).mapFailure { return Failure(it) }
         validateUserWithEmailNotExists(email).mapFailure { return Failure(it) }
 
@@ -80,18 +61,8 @@ internal class RegisterUsecase(
 }
 
 
-sealed class LambdaError(val message: String)
-data object RegisterFailed : LambdaError("Login failed")
-data object InvalidEmail : LambdaError("Invalid email")
-data object InvalidPassword : LambdaError("Invalid password")
-data object InvalidName : LambdaError("Invalid name")
-data object UserAlreadyExists : LambdaError("User already exists")
-
-fun LambdaError.toResponse() = when (this) {
-    InvalidEmail,
-    InvalidPassword,
-    InvalidName -> Response(Status.BAD_REQUEST)
-
-    RegisterFailed -> Response(Status.FORBIDDEN)
-    UserAlreadyExists -> Response(Status.CONFLICT)
-}.with(AuthResult.lens of AuthResult.failure(message))
+internal sealed class LambdaError(val message: String)
+internal data object InvalidEmail : LambdaError("Invalid email")
+internal data object InvalidPassword : LambdaError("Invalid password")
+internal data object InvalidName : LambdaError("Invalid name")
+internal data object UserAlreadyExists : LambdaError("User already exists")

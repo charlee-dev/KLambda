@@ -1,5 +1,6 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintExtension
 
 plugins {
@@ -57,5 +58,11 @@ subprojects {
         group = "verification"
         description = "Runs all detekt tasks"
         dependsOn(tasks.withType<Detekt>())
+    }
+
+    tasks.withType<KotlinCompile>().configureEach {
+        kotlinOptions {
+            freeCompilerArgs = freeCompilerArgs + "-Xcontext-receivers"
+        }
     }
 }

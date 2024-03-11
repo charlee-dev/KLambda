@@ -2,6 +2,8 @@ package component.common.feature.user.model
 
 import dev.forkhandles.values.NonBlankStringValueFactory
 import dev.forkhandles.values.StringValue
+import dev.forkhandles.values.UUIDValue
+import dev.forkhandles.values.UUIDValueFactory
 import dev.forkhandles.values.ValueFactory
 import dev.forkhandles.values.and
 import dev.forkhandles.values.minLength
@@ -34,6 +36,10 @@ class EmailInput(value: String) : StringValue(value) {
         validation = 5.minLength.and(REGEX_EMAIL.regex),
         parseFn = String::lowercase
     )
+}
+
+class UuidInput private constructor(value: UUID) : UUIDValue(value) {
+    companion object : UUIDValueFactory<UuidInput>(::UuidInput)
 }
 
 class PasswordInput(value: String) : StringValue(value) {

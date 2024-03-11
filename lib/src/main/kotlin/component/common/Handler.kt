@@ -1,13 +1,8 @@
 package component.common
 
-import component.common.core.Usecase
-import component.common.feature.auth.JwtService
-import component.common.feature.auth.JwtServiceImpl
 import component.common.feature.auth.TokenSupport
-import component.common.feature.auth.TokenSupportImpl
 import component.common.feature.auth.tokenHash
 import component.common.feature.user.UserRepository
-import component.common.feature.user.UserRepositoryImpl
 import component.common.feature.user.model.UserContext
 import component.common.util.CryptoUtils
 import component.common.util.CryptoUtils.decrypt
@@ -19,9 +14,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import org.crac.Context
 import org.crac.Core
 import org.crac.Resource
-import org.http4k.cloudnative.env.Environment
 import org.http4k.contract.ContractRoute
-import org.http4k.contract.ContractRouteSpec0
 import org.http4k.contract.contract
 import org.http4k.contract.meta
 import org.http4k.contract.openapi.ApiInfo
@@ -42,94 +35,74 @@ import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.serverless.ApiGatewayV2LambdaFunction
 import org.http4k.serverless.AppLoader
+import org.koin.core.Koin
 import java.util.UUID
 
-typealias RouteSpec = ContractRouteSpec0.Binder
+private val apiLogger: KLogger = KotlinLogging.logger {}
 
 abstract class Handler(
-    private val routeSpec: RouteSpec,
-    private val usecase: AppContext.() -> Usecase,
+    private val route: Koin.() -> ContractRoute,
     private val isSecure: Boolean,
 ) : ApiGatewayV2LambdaFunction(
     AppLoader { env ->
         buildApi(
             env = env,
-            usecase = { usecase(this) },
-            routeSpec = routeSpec,
+            route = route,
             isSecure = isSecure,
         )
     }
 )
 
-private val apiLogger: KLogger = KotlinLogging.logger {}
-
-data class AppContext(
-    val userRepository: UserRepository,
-    val jwtService: JwtService
-)
-
 fun buildApi(
     env: Map<String, String>,
-    routeSpec: RouteSpec,
-    usecase: AppContext.() -> Usecase,
+    route: Koin.() -> ContractRoute,
     isSecure: Boolean,
 ): HttpHandler {
-    apiLogger.info { "Environment: $env" }
+    apiLogger.debug { "Environment: $env" }
 
-    val contexts = RequestContexts()
+    with(initKoin(env)) {
+        val contexts = RequestContexts()
+        val api = buildRoutingHandler(route(), isSecure, contexts)
 
-    val environment = Environment.from(env)
-    val config = Config(environment)
-    val tokenSupport = TokenSupportImpl(config)
-    val userRepository = UserRepositoryImpl()
-    val jwtService = JwtServiceImpl(tokenSupport)
-    val appContext = AppContext(
-        userRepository = userRepository,
-        jwtService = jwtService,
-    )
+        fun doPriming() {
+            val tokenSupport by inject<TokenSupport>()
+            // Prime the application by executing some typical functions
+            // https://aws.amazon.com/de/blogs/compute/reducing-java-cold-starts-on-aws-lambda-functions-with-snapstart/
+            val dummyUuid = UUID.randomUUID()
+            val dummySecret = ByteArray(32) { it.toByte() }.toBase64()
+            val token = tokenSupport.createToken(dummyUuid, "pwdHash", dummySecret)
+            api(Request(method = Method.GET, "/api/prime").header("Authorization", "Bearer $token"))
 
-    val api = appContext.buildRoutingHandler(routeSpec, usecase, isSecure, contexts, tokenSupport)
-
-    fun doPriming() {
-        // Prime the application by executing some typical functions
-        // https://aws.amazon.com/de/blogs/compute/reducing-java-cold-starts-on-aws-lambda-functions-with-snapstart/
-        val dummyUuid = UUID.randomUUID()
-        val dummySecret = ByteArray(32) { it.toByte() }.toBase64()
-        val token = tokenSupport.createToken(dummyUuid, "pwdHash", dummySecret)
-        api(Request(method = Method.GET, "/api/prime").header("Authorization", "Bearer $token"))
-
-        val key = CryptoUtils.generateRandomAesKey()
-        token.encrypt(key).decrypt(key)
-    }
-
-    return object : HttpHandler, Resource {
-        init {
-            Core.getGlobalContext().register(this)
+            val key = CryptoUtils.generateRandomAesKey()
+            token.encrypt(key).decrypt(key)
         }
 
-        override fun invoke(request: Request) = api(request)
+        return object : HttpHandler, Resource {
+            init {
+                Core.getGlobalContext().register(this)
+            }
 
-        override fun beforeCheckpoint(context: Context<out Resource>?) {
-            doPriming()
-        }
+            override fun invoke(request: Request) = api(request)
 
-        override fun afterRestore(context: Context<out Resource>?) {
-            // nothing to do
+            override fun beforeCheckpoint(context: Context<out Resource>?) {
+                doPriming()
+            }
+
+            override fun afterRestore(context: Context<out Resource>?) {
+                // nothing to do
+            }
         }
     }
 }
 
-private fun AppContext.buildRoutingHandler(
-    routeSpec: RouteSpec,
-    usecase: AppContext.() -> Usecase,
+context(Koin)
+private fun buildRoutingHandler(
+    route: ContractRoute,
     isSecure: Boolean,
     contexts: RequestContexts,
-    tokenSupport: TokenSupport
 ): RoutingHttpHandler {
     val api = contract {
-        routes += listOf(
-            routeSpec to usecase(this@buildRoutingHandler).handler(),
-        )
+        routes += listOf(route)
 
         // generate OpenApi spec with non-reflective JSON provider
         renderer = OpenApi3(
@@ -140,6 +113,9 @@ private fun AppContext.buildRoutingHandler(
         descriptionPath = "/docs/openapi.json"
 
         if (isSecure) {
+            val tokenSupport by inject<TokenSupport>()
+            val userRepository by inject<UserRepository>()
+
             val userContextKey = RequestContextKey.required<UserContext>(contexts)
             val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
                 tokenSupport.validateToken(token) { id ->
@@ -163,12 +139,7 @@ private fun AppContext.buildRoutingHandler(
     )
 }
 
-private fun primeRoute(): ContractRoute {
-    val primeHandler: HttpHandler = { Response(Status.OK) }
-    val primeSpec: RouteSpec = "/prime" meta {
-        operationId = "prime"
-        returning(Status.OK)
-    } bindContract Method.GET
-    return primeSpec to primeHandler
-}
-
+private fun primeRoute(): ContractRoute = "/prime" meta {
+    operationId = "prime"
+    returning(Status.OK)
+} bindContract Method.GET to { _ -> Response(Status.OK) }

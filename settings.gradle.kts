@@ -9,4 +9,5 @@ include(
 include(
     "function:auth:login",
     "function:auth:register",
+    "function:user:getUserById",
 )

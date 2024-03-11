@@ -15,6 +15,7 @@ dependencies {
 //    implementation(libs.http4k.connect.amazon.s3)
 //    implementation(libs.http4k.connect.amazon.dynamodb)
 //
+    implementation(libs.koin.core)
     implementation(libs.kotshi.api)
     ksp(libs.kotshi.compiler)
     implementation(libs.forkhandles.values4k)
