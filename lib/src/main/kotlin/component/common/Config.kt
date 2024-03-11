@@ -10,7 +10,7 @@ import org.http4k.cloudnative.env.EnvironmentKey
 import org.http4k.lens.secret
 import org.http4k.lens.value
 
-class EncryptionSecret private constructor(value: ByteArray) : AbstractValue<ByteArray>(value, { "*****" }) {
+internal class EncryptionSecret private constructor(value: ByteArray) : AbstractValue<ByteArray>(value, { "*****" }) {
     companion object : ValueFactory<EncryptionSecret, ByteArray>(
         ::EncryptionSecret, { it.size == 32 }, { it.fromBase64() }, { "*****" }
     )
@@ -35,7 +35,7 @@ private val encryptionSecretEnvKey = EnvironmentKey.value(EncryptionSecret).requ
 private val passwordSaltEnvKey = EnvironmentKey.secret().required("PASSWORD_SALT")
 private val signingSecretEnvKey = EnvironmentKey.secret().required("SIGNING_SECRET")
 
-class Config(env: Environment) {
+internal class Config(env: Environment) {
     val encryptionSecret = encryptionSecretEnvKey(env)
     val passwordSalt = passwordSaltEnvKey(env)
     val signingSecret = signingSecretEnvKey(env)

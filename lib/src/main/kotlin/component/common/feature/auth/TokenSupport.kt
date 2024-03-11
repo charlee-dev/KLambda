@@ -2,7 +2,7 @@ package component.common.feature.auth
 
 import component.common.Config
 import component.common.EncryptionSecret
-import component.common.feature.user.UserContext
+import component.common.feature.user.model.UserContext
 import component.common.util.CryptoUtils
 import component.common.util.toBase64
 import io.github.oshai.kotlinlogging.KLogger
@@ -80,7 +80,7 @@ internal class TokenSupportImpl(
     }
 }
 
-fun String.tokenHash(): String {
+internal fun String.tokenHash(): String {
     val digest = MessageDigest.getInstance("SHA3-384")
     return digest.digest(toByteArray()).toBase64()
 }

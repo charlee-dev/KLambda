@@ -1,5 +1,6 @@
 package component.common.feature.user
 
+import component.common.feature.user.model.User
 import java.util.UUID
 
 interface UserRepository {

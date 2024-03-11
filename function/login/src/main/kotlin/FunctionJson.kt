@@ -1,5 +1,5 @@
 import com.squareup.moshi.JsonAdapter
-import component.common.createJson
+import component.common.util.createJson
 import se.ansman.kotshi.KotshiJsonAdapterFactory
 
 @KotshiJsonAdapterFactory

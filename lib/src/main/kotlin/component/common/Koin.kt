@@ -32,7 +32,7 @@ private fun appModule(env: Map<String, String>) = module {
     }
 }
 
-fun initKoin(env: Map<String, String>): Koin {
+internal fun initKoin(env: Map<String, String>): Koin {
     val logger = KotlinLogging.logger {}
     val koinApplication = startKoin {
         modules(listOf(appModule(env)))

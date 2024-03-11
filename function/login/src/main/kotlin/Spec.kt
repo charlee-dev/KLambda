@@ -1,5 +1,5 @@
 import component.common.RouteSpec
-import component.common.feature.user.AuthResult
+import component.common.feature.auth.model.AuthResult
 import org.http4k.contract.meta
 import org.http4k.core.Method.POST
 import org.http4k.core.Status

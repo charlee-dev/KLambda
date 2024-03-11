@@ -1,10 +1,10 @@
 import component.common.core.Usecase
 import component.common.feature.auth.JwtService
-import component.common.feature.user.AuthResult
-import component.common.feature.user.User
+import component.common.feature.auth.model.AuthResult
 import component.common.feature.user.UserRepository
-import component.common.util.CryptoUtils.generatePasswordHash
-import component.common.util.CryptoUtils.verifyPasswordHash
+import component.common.feature.user.model.EmailInput
+import component.common.feature.user.model.PasswordInput
+import component.common.feature.user.model.User
 import dev.forkhandles.result4k.Failure
 import dev.forkhandles.result4k.Result4k
 import dev.forkhandles.result4k.Success
@@ -36,17 +36,17 @@ internal class LoginUsecase(
     }
 
     private fun login(email: String, password: String): Result4k<User, LambdaError> {
-        Email.ofResult4k(email).mapFailure { Failure(LoginFailed) }
-        Password.ofResult4k(password).asResultOr { Failure(LoginFailed) }
+        EmailInput.ofResult4k(email).mapFailure { Failure(LoginFailed) }
+        PasswordInput.ofResult4k(password).asResultOr { Failure(LoginFailed) }
 
         val user = userRepository.findByEmail(email) ?: run {
             // perform the same amount of work when the username was wrong
             // (so the timing of the login will be the same for a wrong username and a wrong password)
-            generatePasswordHash("dummy")
+            jwtService.generatePasswordSecret("dummy")
             return Failure(LoginFailed)
         }
 
-        if (!verifyPasswordHash(password, user.password)) return Failure(LoginFailed)
+        if (!jwtService.verifyPasswordHash(password, user.password)) return Failure(LoginFailed)
 
         userRepository.update(user.copy(lastLogin = Instant.now()))
         return Success(user)

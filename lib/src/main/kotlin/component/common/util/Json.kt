@@ -1,4 +1,4 @@
-package component.common
+package component.common.util
 
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
