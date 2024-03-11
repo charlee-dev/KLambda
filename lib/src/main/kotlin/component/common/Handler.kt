@@ -1,9 +1,13 @@
 package component.common
 
 import component.common.core.Usecase
+import component.common.feature.auth.JwtService
+import component.common.feature.auth.JwtServiceImpl
 import component.common.feature.auth.TokenSupport
+import component.common.feature.auth.TokenSupportImpl
 import component.common.feature.auth.tokenHash
 import component.common.feature.user.UserRepository
+import component.common.feature.user.UserRepositoryImpl
 import component.common.feature.user.model.UserContext
 import component.common.util.CryptoUtils
 import component.common.util.CryptoUtils.decrypt
@@ -38,14 +42,13 @@ import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.serverless.ApiGatewayV2LambdaFunction
 import org.http4k.serverless.AppLoader
-import org.koin.core.Koin
 import java.util.UUID
 
 typealias RouteSpec = ContractRouteSpec0.Binder
 
 abstract class Handler(
     private val routeSpec: RouteSpec,
-    private val usecase: Koin.() -> Usecase,
+    private val usecase: AppContext.() -> Usecase,
     private val isSecure: Boolean,
 ) : ApiGatewayV2LambdaFunction(
     AppLoader { env ->
@@ -60,10 +63,15 @@ abstract class Handler(
 
 private val apiLogger: KLogger = KotlinLogging.logger {}
 
+data class AppContext(
+    val userRepository: UserRepository,
+    val jwtService: JwtService
+)
+
 fun buildApi(
     env: Map<String, String>,
     routeSpec: RouteSpec,
-    usecase: Koin.() -> Usecase,
+    usecase: AppContext.() -> Usecase,
     isSecure: Boolean,
 ): HttpHandler {
     apiLogger.info { "Environment: $env" }
@@ -71,15 +79,21 @@ fun buildApi(
     val contexts = RequestContexts()
 
     val environment = Environment.from(env)
-    val koin = initKoin(environment)
+    val config = Config(environment)
+    val tokenSupport = TokenSupportImpl(config)
+    val userRepository = UserRepositoryImpl()
+    val jwtService = JwtServiceImpl(tokenSupport)
+    val appContext = AppContext(
+        userRepository = userRepository,
+        jwtService = jwtService,
+    )
 
-    val api = koin.buildRoutingHandler(routeSpec, usecase, isSecure, contexts)
+    val api = appContext.buildRoutingHandler(routeSpec, usecase, isSecure, contexts, tokenSupport)
 
     fun doPriming() {
         // Prime the application by executing some typical functions
         // https://aws.amazon.com/de/blogs/compute/reducing-java-cold-starts-on-aws-lambda-functions-with-snapstart/
         val dummyUuid = UUID.randomUUID()
-        val tokenSupport = koin.get<TokenSupport>()
         val dummySecret = ByteArray(32) { it.toByte() }.toBase64()
         val token = tokenSupport.createToken(dummyUuid, "pwdHash", dummySecret)
         api(Request(method = Method.GET, "/api/prime").header("Authorization", "Bearer $token"))
@@ -105,16 +119,16 @@ fun buildApi(
     }
 }
 
-private fun Koin.buildRoutingHandler(
+private fun AppContext.buildRoutingHandler(
     routeSpec: RouteSpec,
-    usecase: Koin.() -> Usecase,
+    usecase: AppContext.() -> Usecase,
     isSecure: Boolean,
     contexts: RequestContexts,
+    tokenSupport: TokenSupport
 ): RoutingHttpHandler {
     val api = contract {
         routes += listOf(
             routeSpec to usecase(this@buildRoutingHandler).handler(),
-            primeRoute()
         )
 
         // generate OpenApi spec with non-reflective JSON provider
@@ -128,8 +142,8 @@ private fun Koin.buildRoutingHandler(
         if (isSecure) {
             val userContextKey = RequestContextKey.required<UserContext>(contexts)
             val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
-                get<TokenSupport>().validateToken(token) { id ->
-                    get<UserRepository>().findById(id)?.passwordHash?.tokenHash()
+                tokenSupport.validateToken(token) { id ->
+                    userRepository.findById(id)?.passwordHash?.tokenHash()
                 }
             }
             security = BearerAuthSecurity(bearerAuth)
@@ -142,8 +156,10 @@ private fun Koin.buildRoutingHandler(
         pageTitle = "BeNatty API 1.0"
     }
 
+    val primeRoute = contract { routes += primeRoute() }
+
     return routes(
-        "/api" bind routes(api, openapi),
+        "/api" bind routes(api, openapi, primeRoute),
     )
 }
 

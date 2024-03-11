@@ -11,12 +11,10 @@ dependencies {
     implementation(libs.http4k.format.moshi) {
         exclude("org.jetbrains.kotlin", "kotlin-reflect")
     }
-    implementation("org.webjars:swagger-ui:3.43.0")
 
 //    implementation(libs.http4k.connect.amazon.s3)
 //    implementation(libs.http4k.connect.amazon.dynamodb)
 //
-    implementation(libs.koin.core)
     implementation(libs.kotshi.api)
     ksp(libs.kotshi.compiler)
     implementation(libs.forkhandles.values4k)

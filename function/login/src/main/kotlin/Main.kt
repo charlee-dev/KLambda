@@ -10,7 +10,7 @@ fun main() {
     buildApi(
         env = getEnv(),
         routeSpec = routeSpec,
-        usecase = { LoginUsecase(get(), get()) },
+        usecase = { LoginUsecase(userRepository, jwtService) },
         isSecure = false,
     )
         .asServer(SunHttp(PORT)).start()

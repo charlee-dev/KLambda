@@ -16,7 +16,6 @@ dependencies {
         exclude("org.jetbrains.kotlin", "kotlin-reflect")
     }
 
-    implementation(libs.koin.core)
     implementation(libs.kotshi.api)
     ksp(libs.kotshi.compiler)
     implementation(libs.forkhandles.values4k)
