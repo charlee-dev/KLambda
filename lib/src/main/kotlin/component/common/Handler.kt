@@ -33,12 +33,14 @@ typealias RouteSpec = ContractRouteSpec0.Binder
 abstract class Handler(
     private val routeSpec: RouteSpec,
     private val usecase: Koin.() -> Usecase,
+    private val isSecure: Boolean,
 ) : ApiGatewayV2LambdaFunction(
     AppLoader { env ->
         buildApi(
             env = env,
             usecase = { usecase(this).handler() },
             routeSpec = routeSpec,
+            isSecure = isSecure,
         )
     }
 )
@@ -48,22 +50,16 @@ private val apiLogger: KLogger = KotlinLogging.logger {}
 fun buildApi(
     env: Map<String, String>,
     routeSpec: RouteSpec,
-    usecase: Koin.() -> HttpHandler
+    usecase: Koin.() -> HttpHandler,
+    isSecure: Boolean,
 ): HttpHandler {
     apiLogger.info { "Environment: $env" }
 
     val contexts = RequestContexts()
-    val userContextKey = RequestContextKey.required<UserContext>(contexts)
 
     val koin = initKoin(env)
 
     with(koin) {
-        val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
-            koin.get<TokenSupport>().validateToken(token) { id ->
-                koin.get<UserRepository>().findById(id)?.password?.tokenHash()
-            }
-        }
-
         val api = contract {
             routes += listOf(routeSpec to usecase(this@with))
 
@@ -75,7 +71,15 @@ fun buildApi(
             )
             descriptionPath = "/docs/openapi.json"
 
-            security = BearerAuthSecurity(bearerAuth)
+            if (isSecure) {
+                val userContextKey = RequestContextKey.required<UserContext>(contexts)
+                val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
+                    koin.get<TokenSupport>().validateToken(token) { id ->
+                        koin.get<UserRepository>().findById(id)?.password?.tokenHash()
+                    }
+                }
+                security = BearerAuthSecurity(bearerAuth)
+            }
         }
 
         val openapi = swaggerUiLite {

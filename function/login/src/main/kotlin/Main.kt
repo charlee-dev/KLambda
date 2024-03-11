@@ -10,7 +10,8 @@ fun main() {
     buildApi(
         env = getEnv(),
         routeSpec = routeSpec,
-        usecase = { LoginUsecase(get(), get()).handler() }
+        usecase = { LoginUsecase(get(), get()).handler() },
+        isSecure = false,
     )
         .asServer(SunHttp(PORT)).start()
         .also { println("Server started on port: $PORT") }

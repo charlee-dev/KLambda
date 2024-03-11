@@ -7,4 +7,5 @@ import component.common.feature.user.UserRepository
 class LoginHandler : Handler(
     usecase = { LoginUsecase(get<UserRepository>(), get<JwtService>()) },
     routeSpec = routeSpec,
+    isSecure = false,
 )
