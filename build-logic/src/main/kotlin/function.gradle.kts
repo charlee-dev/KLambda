@@ -9,22 +9,18 @@ plugins {
 val libs = the<LibrariesForLibs>()
 
 dependencies {
-//    implementation(libs.http4k.core)
-//    implementation(libs.http4k.serverless.lambda)
-//    implementation(libs.http4k.cloudnative)
-//    implementation(libs.http4k.contract)
-//    implementation(libs.http4k.connect.amazon.s3)
-//    implementation(libs.http4k.connect.amazon.dynamodb)
-//    implementation(libs.http4k.format.moshi) {
-//        exclude("org.jetbrains.kotlin", "kotlin-reflect")
-//    }
-//
-//    implementation(libs.kotshi.api)
-//    ksp(libs.kotshi.compiler)
-//    implementation(libs.forkhandles.result4k)
-//    implementation(libs.forkhandles.values4k)
-//
-//    testImplementation(libs.http4k.connect.amazon.dynamodb.fake)
+    implementation(libs.http4k.core)
+    implementation(libs.http4k.cloudnative)
+    implementation(libs.http4k.contract)
+    implementation(libs.http4k.format.moshi) {
+        exclude("org.jetbrains.kotlin", "kotlin-reflect")
+    }
+
+    implementation(libs.koin.core)
+    implementation(libs.kotshi.api)
+    ksp(libs.kotshi.compiler)
+    implementation(libs.forkhandles.values4k)
+    implementation(libs.forkhandles.result4k)
 }
 
 tasks.shadowJar {

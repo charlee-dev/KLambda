@@ -6,6 +6,7 @@ detekt = "1.23.0"
 forkhandles = "2.10.1.0"
 http4k = "5.13.9.0"
 http4kConnect = "5.4.0.0"
+koin = "3.5.3"
 kotlin = "1.9.23"
 kotshiVersion = "2.14.0"
 kover = "0.7.6"
@@ -33,6 +34,8 @@ http4k-connect-amazon-s3 = { module = "org.http4k:http4k-connect-amazon-s3", ver
 http4k-connect-amazon-s3-fake = { module = "org.http4k:http4k-connect-amazon-s3-fake", version.ref = "http4kConnect" }
 http4k-connect-amazon-dynamodb = { module = "org.http4k:http4k-connect-amazon-dynamodb", version.ref = "http4kConnect" }
 http4k-connect-amazon-dynamodb-fake = { module = "org.http4k:http4k-connect-amazon-dynamodb-fake", version.ref = "http4kConnect" }
+
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 
 kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlin-logging = { module = "io.github.oshai:kotlin-logging-jvm", version.ref = "logging" }
