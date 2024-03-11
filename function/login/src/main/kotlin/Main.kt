@@ -10,7 +10,7 @@ fun main() {
     buildApi(
         env = getEnv(),
         routeSpec = routeSpec,
-        usecase = { LoginUsecase(get(), get()).handler() },
+        usecase = { LoginUsecase(get(), get()) },
         isSecure = false,
     )
         .asServer(SunHttp(PORT)).start()

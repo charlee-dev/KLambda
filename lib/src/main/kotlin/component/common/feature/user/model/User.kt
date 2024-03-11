@@ -14,11 +14,13 @@ data class User(
     val email: String,
     val password: String,
     val encryptedSecret: String,
+    val name: String,
     val lastLogin: Instant? = null
 ) {
     companion object {
         const val EMAIL_SAMPLE = "john.smith@gmail.com"
         const val PASSWORD_SAMPLE = "password"
+        const val NAME_SAMPLE = "John Smith"
     }
 }
 

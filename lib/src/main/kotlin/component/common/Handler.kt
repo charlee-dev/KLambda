@@ -39,7 +39,7 @@ abstract class Handler(
     AppLoader { env ->
         buildApi(
             env = env,
-            usecase = { usecase(this).handler() },
+            usecase = { usecase(this) },
             routeSpec = routeSpec,
             isSecure = isSecure,
         )
@@ -51,7 +51,7 @@ private val apiLogger: KLogger = KotlinLogging.logger {}
 fun buildApi(
     env: Map<String, String>,
     routeSpec: RouteSpec,
-    usecase: Koin.() -> HttpHandler,
+    usecase: Koin.() -> Usecase,
     isSecure: Boolean,
 ): HttpHandler {
     apiLogger.info { "Environment: $env" }
@@ -62,7 +62,7 @@ fun buildApi(
 
     with(koin) {
         val api = contract {
-            routes += listOf(routeSpec to usecase(this@with))
+            routes += listOf(routeSpec to usecase(this@with).handler())
 
             // generate OpenApi spec with non-reflective JSON provider
             renderer = OpenApi3(

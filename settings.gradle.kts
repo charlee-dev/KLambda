@@ -5,5 +5,8 @@ includeBuild("build-logic")
 include(
     "infrastructure",
     "lib",
+)
+include(
     "function:login",
+    "function:register",
 )
