@@ -3,7 +3,7 @@ package component.common.util
 import java.util.Base64
 import kotlin.experimental.xor
 
-internal fun ByteArray.toBase64(): String = Base64.getEncoder().encodeToString(this)
+fun ByteArray.toBase64(): String = Base64.getEncoder().encodeToString(this)
 
 internal fun String.fromBase64(): ByteArray = Base64.getDecoder().decode(this)
 

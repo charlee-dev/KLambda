@@ -12,7 +12,7 @@ import java.util.UUID
 data class User(
     val id: UUID,
     val email: String,
-    val password: String,
+    val passwordHash: String,
     val encryptedSecret: String,
     val name: String,
     val lastLogin: Instant? = null
@@ -38,4 +38,8 @@ class EmailInput(value: String) : StringValue(value) {
 
 class PasswordInput(value: String) : StringValue(value) {
     companion object : NonBlankStringValueFactory<PasswordInput>(::PasswordInput)
+}
+
+class NameInput(value: String) : StringValue(value) {
+    companion object : NonBlankStringValueFactory<NameInput>(::NameInput)
 }

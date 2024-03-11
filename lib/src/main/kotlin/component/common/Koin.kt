@@ -12,10 +12,9 @@ import org.koin.core.Koin
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.dsl.module
 
-private fun appModule(env: Map<String, String>) = module {
+private fun appModule(env: Environment) = module {
     single<Config> {
-        val environment = Environment.from(env)
-        Config(env = environment)
+        Config(env = env)
     }
     single<TokenSupport> {
         TokenSupportImpl(
@@ -32,7 +31,7 @@ private fun appModule(env: Map<String, String>) = module {
     }
 }
 
-internal fun initKoin(env: Map<String, String>): Koin {
+internal fun initKoin(env: Environment): Koin {
     val logger = KotlinLogging.logger {}
     val koinApplication = startKoin {
         modules(listOf(appModule(env)))

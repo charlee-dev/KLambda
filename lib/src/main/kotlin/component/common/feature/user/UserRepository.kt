@@ -27,7 +27,7 @@ internal class UserRepositoryImpl : UserRepository {
 
     override fun create(user: User): User {
         users.add(user).also {
-            println("User Created $it")
+            println("User Created $it. All users: $users")
         }
         return user
     }

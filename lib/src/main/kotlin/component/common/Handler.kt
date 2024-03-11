@@ -5,29 +5,41 @@ import component.common.feature.auth.TokenSupport
 import component.common.feature.auth.tokenHash
 import component.common.feature.user.UserRepository
 import component.common.feature.user.model.UserContext
+import component.common.util.CryptoUtils
+import component.common.util.CryptoUtils.decrypt
+import component.common.util.CryptoUtils.encrypt
 import component.common.util.libJson
+import component.common.util.toBase64
 import io.github.oshai.kotlinlogging.KLogger
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.crac.Context
+import org.crac.Core
+import org.crac.Resource
+import org.http4k.cloudnative.env.Environment
+import org.http4k.contract.ContractRoute
 import org.http4k.contract.ContractRouteSpec0
 import org.http4k.contract.contract
+import org.http4k.contract.meta
 import org.http4k.contract.openapi.ApiInfo
 import org.http4k.contract.openapi.v3.OpenApi3
 import org.http4k.contract.openapi.v3.OpenApi3ApiRenderer
 import org.http4k.contract.security.BearerAuthSecurity
 import org.http4k.contract.ui.swaggerUiLite
-import org.http4k.core.Filter
 import org.http4k.core.HttpHandler
+import org.http4k.core.Method
+import org.http4k.core.Request
 import org.http4k.core.RequestContexts
 import org.http4k.core.Response
 import org.http4k.core.Status
-import org.http4k.core.then
 import org.http4k.filter.ServerFilters
 import org.http4k.lens.RequestContextKey
+import org.http4k.routing.RoutingHttpHandler
 import org.http4k.routing.bind
 import org.http4k.routing.routes
 import org.http4k.serverless.ApiGatewayV2LambdaFunction
 import org.http4k.serverless.AppLoader
 import org.koin.core.Koin
+import java.util.UUID
 
 typealias RouteSpec = ContractRouteSpec0.Binder
 
@@ -58,58 +70,89 @@ fun buildApi(
 
     val contexts = RequestContexts()
 
-    val koin = initKoin(env)
+    val environment = Environment.from(env)
+    val koin = initKoin(environment)
 
-    with(koin) {
-        val api = contract {
-            routes += listOf(routeSpec to usecase(this@with).handler())
+    val api = koin.buildRoutingHandler(routeSpec, usecase, isSecure, contexts)
 
-            // generate OpenApi spec with non-reflective JSON provider
-            renderer = OpenApi3(
-                apiInfo = ApiInfo("BeNatty API", "1.0"),
-                json = libJson,
-                apiRenderer = OpenApi3ApiRenderer(libJson)
-            )
-            descriptionPath = "/docs/openapi.json"
+    fun doPriming() {
+        // Prime the application by executing some typical functions
+        // https://aws.amazon.com/de/blogs/compute/reducing-java-cold-starts-on-aws-lambda-functions-with-snapstart/
+        val dummyUuid = UUID.randomUUID()
+        val tokenSupport = koin.get<TokenSupport>()
+        val dummySecret = ByteArray(32) { it.toByte() }.toBase64()
+        val token = tokenSupport.createToken(dummyUuid, "pwdHash", dummySecret)
+        api(Request(method = Method.GET, "/api/prime").header("Authorization", "Bearer $token"))
 
-            if (isSecure) {
-                val userContextKey = RequestContextKey.required<UserContext>(contexts)
-                val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
-                    koin.get<TokenSupport>().validateToken(token) { id ->
-                        koin.get<UserRepository>().findById(id)?.password?.tokenHash()
-                    }
-                }
-                security = BearerAuthSecurity(bearerAuth)
-            }
+        val key = CryptoUtils.generateRandomAesKey()
+        token.encrypt(key).decrypt(key)
+    }
+
+    return object : HttpHandler, Resource {
+        init {
+            Core.getGlobalContext().register(this)
         }
 
-        val openapi = swaggerUiLite {
-            pageTitle = "BeNatty API: Login"
-            url = "/api/docs/openapi.json"
-            pageTitle = "BeNatty API 1.0"
+        override fun invoke(request: Request) = api(request)
+
+        override fun beforeCheckpoint(context: Context<out Resource>?) {
+            doPriming()
         }
 
-        val routes = routes(
-            "/api" bind routes(api, openapi),
+        override fun afterRestore(context: Context<out Resource>?) {
+            // nothing to do
+        }
+    }
+}
+
+private fun Koin.buildRoutingHandler(
+    routeSpec: RouteSpec,
+    usecase: Koin.() -> Usecase,
+    isSecure: Boolean,
+    contexts: RequestContexts,
+): RoutingHttpHandler {
+    val api = contract {
+        routes += listOf(
+            routeSpec to usecase(this@buildRoutingHandler).handler(),
+            primeRoute()
         )
 
-        return ServerFilters.InitialiseRequestContext(contexts)
-            .then(logRequest())
-            .then(catchServerErrors())
-            .then(routes)
+        // generate OpenApi spec with non-reflective JSON provider
+        renderer = OpenApi3(
+            apiInfo = ApiInfo("BeNatty API", "1.0"),
+            json = libJson,
+            apiRenderer = OpenApi3ApiRenderer(libJson)
+        )
+        descriptionPath = "/docs/openapi.json"
+
+        if (isSecure) {
+            val userContextKey = RequestContextKey.required<UserContext>(contexts)
+            val bearerAuth = ServerFilters.BearerAuth(userContextKey) { token: String ->
+                get<TokenSupport>().validateToken(token) { id ->
+                    get<UserRepository>().findById(id)?.passwordHash?.tokenHash()
+                }
+            }
+            security = BearerAuthSecurity(bearerAuth)
+        }
     }
+
+    val openapi = swaggerUiLite {
+        pageTitle = "BeNatty API: Login"
+        url = "/api/docs/openapi.json"
+        pageTitle = "BeNatty API 1.0"
+    }
+
+    return routes(
+        "/api" bind routes(api, openapi),
+    )
 }
 
-private fun catchServerErrors() = ServerFilters.CatchAll { t ->
-    apiLogger.error(t) { "Caught ${t.message}" }
-    if (t !is Exception) throw t
-    Response(Status.INTERNAL_SERVER_ERROR)
+private fun primeRoute(): ContractRoute {
+    val primeHandler: HttpHandler = { Response(Status.OK) }
+    val primeSpec: RouteSpec = "/prime" meta {
+        operationId = "prime"
+        returning(Status.OK)
+    } bindContract Method.GET
+    return primeSpec to primeHandler
 }
 
-private fun logRequest() = Filter { next: HttpHandler ->
-    { request ->
-        val headers = request.headers.joinToString("\n") { "${it.first}: ${it.second}" }
-        apiLogger.info { "${request.method} ${request.uri}\n$headers\n${request.body}" }
-        next(request)
-    }
-}
