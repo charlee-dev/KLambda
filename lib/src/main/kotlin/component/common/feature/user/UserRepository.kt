@@ -9,7 +9,7 @@ interface UserRepository {
     fun findByEmail(email: String): User?
     fun create(user: User): User
     fun delete(id: UUID)
-    fun update(user: User): User
+    fun update(id: UUID, name: String?, email: String?, password: String?): User
 }
 
 internal class UserRepositoryImpl : UserRepository {
@@ -41,11 +41,15 @@ internal class UserRepositoryImpl : UserRepository {
         }
     }
 
-    override fun update(user: User): User {
-        val index = users.indexOfFirst { it.id == user.id }
-        if (index != -1) {
-            users[index] = user
-        }
-        return user
+    override fun update(id: UUID, name: String?, email: String?, password: String?): User {
+        val user = findById(id) ?: error("User not found")
+        val updatedUser = user.copy( // FIXME: We  want to be able to update single properties
+            name = name ?: user.name,
+            email = email ?: user.email,
+            passwordHash = password ?: user.passwordHash // FIXME: password need to be hashed
+        )
+        users.remove(user)
+        users.add(updatedUser)
+        return updatedUser
     }
 }

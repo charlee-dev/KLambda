@@ -40,7 +40,7 @@ import java.util.UUID
 
 private val apiLogger: KLogger = KotlinLogging.logger {}
 
-abstract class Handler(
+abstract class LambdaHandler(
     private val route: Koin.() -> ContractRoute,
     private val isSecure: Boolean,
 ) : ApiGatewayV2LambdaFunction(

@@ -8,6 +8,8 @@ import dev.forkhandles.values.ValueFactory
 import dev.forkhandles.values.and
 import dev.forkhandles.values.minLength
 import dev.forkhandles.values.regex
+import org.http4k.lens.Query
+import org.http4k.lens.string
 import java.time.Instant
 import java.util.UUID
 
@@ -20,6 +22,7 @@ data class User(
     val lastLogin: Instant? = null
 ) {
     companion object {
+        val idQueryLens = Query.string().required("id")
         const val EMAIL_SAMPLE = "john.smith@gmail.com"
         const val PASSWORD_SAMPLE = "password"
         const val NAME_SAMPLE = "John Smith"

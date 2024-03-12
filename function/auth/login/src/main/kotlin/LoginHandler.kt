@@ -1,4 +1,4 @@
-import component.common.Handler
+import component.common.LambdaHandler
 import component.common.feature.auth.JwtService
 import component.common.feature.auth.model.AuthResult
 import component.common.feature.user.UserRepository
@@ -15,7 +15,7 @@ import org.koin.core.Koin
 
 // Access point for AWS Lambda
 @Suppress("unused")
-class LoginHandler : Handler(
+class LoginHandler : LambdaHandler(
     isSecure = false,
     route = ::route,
 )
