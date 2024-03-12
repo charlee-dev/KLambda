@@ -10,7 +10,7 @@ fun main() {
     buildApi(
         env = getEnv(),
         isSecure = false,
-        route = ::route,
+        route = { route(get()) },
     )
         .asServer(SunHttp(PORT)).start()
         .also { println("Server started on port: $PORT") }

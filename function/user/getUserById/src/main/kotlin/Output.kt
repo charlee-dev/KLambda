@@ -4,14 +4,14 @@ import java.time.Instant
 import java.util.UUID
 
 @JsonSerializable
-data class GetUserByIdResult(
+data class Output(
     val userProfile: UserProfile?,
     val message: String? = null
 ) {
-    companion object {
-        val lens = functionJson.autoBody<GetUserByIdResult>().toLens()
-        val success = GetUserByIdResult(userProfile = UserProfile.sample)
-        fun failure(message: String) = GetUserByIdResult(userProfile = null, message = message)
+    internal companion object {
+        val outputLens = functionJson.autoBody<Output>().toLens()
+        val success = Output(userProfile = UserProfile.sample)
+        fun failure(message: String) = Output(userProfile = null, message = message)
     }
 }
 
@@ -22,7 +22,7 @@ data class UserProfile(
     val name: String,
     val lastLogin: Instant? = null
 ) {
-    companion object {
+    internal companion object {
         val sample = UserProfile(
             id = UUID.randomUUID().toString(),
             email = User.EMAIL_SAMPLE,

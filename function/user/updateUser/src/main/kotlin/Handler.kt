@@ -17,7 +17,6 @@ import dev.forkhandles.result4k.flatMap
 import dev.forkhandles.result4k.get
 import dev.forkhandles.result4k.map
 import dev.forkhandles.result4k.mapFailure
-import dev.forkhandles.values.ofResult4k
 import org.http4k.contract.ContractRoute
 import org.http4k.contract.meta
 import org.http4k.core.Method.PATCH
@@ -25,47 +24,41 @@ import org.http4k.core.Response
 import org.http4k.core.Status.Companion.BAD_REQUEST
 import org.http4k.core.Status.Companion.OK
 import org.http4k.core.with
-import org.koin.core.Koin
 import java.util.UUID
 
 // Access point for AWS Lambda
 @Suppress("unused")
 class Handler : LambdaHandler(
-    route = ::route,
+    route = { route(get()) },
     isSecure = false,
 )
 
-context(Koin)
-fun route(): ContractRoute {
-    val userRepository: UserRepository by inject()
+internal fun route(userRepository: UserRepository): ContractRoute = "/user" meta {
+    operationId = "user_update"
+    summary = "Get User By Id"
+    queries += idQueryLens
 
-    return "/user" meta {
-        operationId = "user_update"
-        summary = "Get User By Id"
-        queries += idQueryLens
-
-        with(Input) {
-            receiving(inputLens to inputSample)
-        }
-        with(Output) {
-            returning(OK, outputLens to success)
-            returning(BAD_REQUEST, outputLens to failure())
-        }
-    } bindContract PATCH to { request ->
-        validateInput(inputLens(request))
-            .flatMap { userRepository.updateUser(it) }
-            .map { Response(OK).with(outputLens of success) }
-            .mapFailure { it.toResponse() }
-            .get()
+    with(Input) {
+        receiving(inputLens to inputSample)
     }
+    with(Output) {
+        returning(OK, outputLens to success)
+        returning(BAD_REQUEST, outputLens to failure())
+    }
+} bindContract PATCH to { request ->
+    validateInput(inputLens(request))
+        .flatMap { userRepository.updateUser(it) }
+        .map { Response(OK).with(outputLens of success) }
+        .mapFailure { it.toResponse() }
+        .get()
 }
 
 private fun validateInput(input: Input): Result4k<Input, List<LambdaError>> =
     mutableListOf<LambdaError>().apply {
-        UuidInput.ofResult4k(UUID.fromString(input.id)).asResultOr { add(InvalidId) }
-        input.email?.let { EmailInput.ofResult4k(it).asResultOr { add(InvalidEmail) } }
-        input.password?.let { PasswordInput.ofResult4k(it).asResultOr { add(InvalidPassword) } }
-        input.name?.let { NameInput.ofResult4k(it).asResultOr { add(InvalidName) } }
+        UuidInput.of(UUID.fromString(input.id)).asResultOr { add(InvalidId) }
+        input.email?.let { EmailInput(it).asResultOr { add(InvalidEmail) } }
+        input.password?.let { PasswordInput(it).asResultOr { add(InvalidPassword) } }
+        input.name?.let { NameInput(it).asResultOr { add(InvalidName) } }
     }
         .takeIf { it.isNotEmpty() }
         ?.let { Failure(it) }
@@ -76,7 +69,8 @@ private fun UserRepository.updateUser(input: Input): Result4k<Output, List<Lambd
         id = UUID.fromString(input.id),
         name = input.name,
         email = input.email,
-        password = input.password
+        password = input.password,
+        lastLogin = null
     )
 
     val output = Output(

@@ -11,7 +11,7 @@ data class AuthResult(
 ) {
     companion object {
         const val TOKEN_SAMPLE = "token 1234567890"
-        val lens = libJson.autoBody<AuthResult>().toLens()
+        val outputLens = libJson.autoBody<AuthResult>().toLens()
         fun success(token: String? = null) = AuthResult(success = true, token = token)
         fun failure(message: String? = "Authentication failed") = AuthResult(success = false, message = message)
     }

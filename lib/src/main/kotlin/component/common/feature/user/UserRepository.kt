@@ -1,6 +1,7 @@
 package component.common.feature.user
 
 import component.common.feature.user.model.User
+import java.time.Instant
 import java.util.UUID
 
 interface UserRepository {
@@ -9,7 +10,7 @@ interface UserRepository {
     fun findByEmail(email: String): User?
     fun create(user: User): User
     fun delete(id: UUID)
-    fun update(id: UUID, name: String?, email: String?, password: String?): User
+    fun update(id: UUID, name: String?, email: String?, password: String?, lastLogin: Instant?): User
 }
 
 internal class UserRepositoryImpl : UserRepository {
@@ -41,12 +42,13 @@ internal class UserRepositoryImpl : UserRepository {
         }
     }
 
-    override fun update(id: UUID, name: String?, email: String?, password: String?): User {
+    override fun update(id: UUID, name: String?, email: String?, password: String?, lastLogin: Instant?): User {
         val user = findById(id) ?: error("User not found")
         val updatedUser = user.copy( // FIXME: We  want to be able to update single properties
             name = name ?: user.name,
             email = email ?: user.email,
-            passwordHash = password ?: user.passwordHash // FIXME: password need to be hashed
+            passwordHash = password ?: user.passwordHash, // FIXME: password need to be hashed
+            lastLogin = lastLogin ?: user.lastLogin
         )
         users.remove(user)
         users.add(updatedUser)

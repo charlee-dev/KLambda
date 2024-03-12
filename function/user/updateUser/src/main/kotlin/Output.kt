@@ -20,7 +20,7 @@ data class Output(
     val updatedUser: UpdatedUser?,
     val message: String? = null
 ) {
-    companion object {
+    internal companion object {
         val outputLens = functionJson.autoBody<Output>().toLens()
         val success = Output(updatedUser = UpdatedUser.sample)
         fun failure(message: String = "User update failed") = Output(updatedUser = null, message = message)
@@ -33,7 +33,7 @@ data class UpdatedUser(
     val email: String,
     val name: String,
 ) {
-    companion object {
+    internal companion object {
         val sample = UpdatedUser(
             id = UUID.randomUUID().toString(),
             email = User.EMAIL_SAMPLE,
