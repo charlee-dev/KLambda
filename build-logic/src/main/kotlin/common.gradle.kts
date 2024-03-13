@@ -17,6 +17,7 @@ application.mainClass.set("MainKt")
 dependencies {
     implementation(kotlin("stdlib"))
 
+    implementation(libs.koin.core)
     implementation(libs.kotlin.logging)
     implementation(libs.slf4j.api)
     runtimeOnly(libs.slf4j.simple)

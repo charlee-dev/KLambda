@@ -4,9 +4,12 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 includeBuild("build-logic")
 include(
     "infrastructure",
+
     "lib",
-)
-include(
+
+    ":aws:dynamoDB",
+    ":aws:s3",
+
     "function:auth:login",
     "function:auth:register",
 
